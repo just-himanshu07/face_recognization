@@ -15,14 +15,27 @@ import recognizer
 
 app = FastAPI()
 
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Configure CORS based on environment
+# In production, specify allowed origins; in development, allow all
+allowed_origins = os.getenv("CORS_ORIGINS", "*").split(",") if os.getenv("CORS_ORIGINS") != "*" else ["*"]
+if allowed_origins == ["*"]:
+    # Development mode - allow all origins
+    cors_config = {
+        "allow_origins": ["*"],
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+else:
+    # Production mode - specific origins
+    cors_config = {
+        "allow_origins": [origin.strip() for origin in allowed_origins],
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+
+app.add_middleware(CORSMiddleware, **cors_config)
 
 # Create tables
 models.Base.metadata.create_all(bind=database.engine)
@@ -83,11 +96,19 @@ async def recognize_attendance(file: UploadFile = File(...), db: Session = Depen
         u_id = known_ids[idx]
         found_names.append(name)
         
-        # Log attendance for every successful recognition request
-        attendance_entry = models.Attendance(user_id=u_id, user_name=name)
-        db.add(attendance_entry)
-        db.commit()
-        marked_users.append(name)
+        # Check if attendance was already logged within the last hour
+        one_hour_ago = datetime.now() - timedelta(hours=1)
+        recent_attendance = db.query(models.Attendance).filter(
+            models.Attendance.user_id == u_id,
+            models.Attendance.timestamp >= one_hour_ago
+        ).first()
+        
+        # Only log if no recent attendance found
+        if not recent_attendance:
+            attendance_entry = models.Attendance(user_id=u_id, user_name=name)
+            db.add(attendance_entry)
+            db.commit()
+            marked_users.append(name)
             
     return {"matches": found_names, "new_attendance": marked_users}
 
