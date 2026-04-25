@@ -1,0 +1,52 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Node (frontend)
+node_modules
+npm-debug.log
+.next
+dist
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+README.md
+
+# Uploads (will be created at runtime)
+backend/uploads/
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
